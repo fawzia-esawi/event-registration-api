@@ -12,8 +12,9 @@
   <ItemGroup>
     <PackageReference Include="Dapper" Version="2.1.89" />
     <PackageReference Include="DotNetEnv" Version="3.2.0" />
+    <PackageReference Include="FluentValidation" Version="12.1.1" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
-    <PackageReference Include="MediatR" Version="14.2.0" />
+    <PackageReference Include="MediatR" Version="12.5.0" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
     <PackageReference Include="MySqlConnector" Version="2.6.2" />
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
@@ -22,16 +23,12 @@
 
   <ItemGroup>
     <Folder Include="Controllers\" />
-    <Folder Include="Database\migrations\" />
     <Folder Include="Features\Categories\" />
     <Folder Include="Features\Events\" />
     <Folder Include="Features\Dashboard\" />
     <Folder Include="Features\Registrations\" />
     <Folder Include="Features\Participants\" />
-    <Folder Include="Interfaces\" />
-    <Folder Include="Behaviors\" />
     <Folder Include="Middlewares\" />
-    <Folder Include="Exceptions\" />
     <Folder Include="Configurations\" />
     <Folder Include="Common\" />
   </ItemGroup>

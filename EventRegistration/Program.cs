@@ -1,26 +1,62 @@
+using EventRegistration.Api.Behaviors;
+using EventRegistration.Api.Database;
+using EventRegistration.Api.Interfaces;
+using EventRegistration.Api.Middlewares;
+using FluentValidation;
+using MediatR;
+using Serilog;
+
 DotNetEnv.Env.Load();
-var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
 
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+try
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    Log.Information("Starting Event Registration API");
+
+    var builder = WebApplication.CreateBuilder(args);
+    builder.Host.UseSerilog();
+
+    builder.Services.AddControllers();
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen();
+
+    builder.Services.AddSingleton<IEventRegistrationDatabase, EventRegistrationDatabase>();
+
+    builder.Services.AddMediatR(cfg =>
+        cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
+    builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
+    builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+
+    var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+                  ?? Array.Empty<string>();
+    builder.Services.AddCors(options =>
+        options.AddPolicy("Frontend", policy =>
+            policy.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod()));
+
+    var app = builder.Build();
+
+    app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
+
+    app.UseCors("Frontend");
+    app.MapControllers();
+
+    app.Run();
 }
-
-app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
-app.MapControllers();
-
-app.Run();
+catch (Exception ex)
+{
+    Log.Fatal(ex, "API terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
