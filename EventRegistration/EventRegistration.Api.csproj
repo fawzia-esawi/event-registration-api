@@ -22,8 +22,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
-    <Folder Include="Features\Categories\" />
     <Folder Include="Features\Events\" />
     <Folder Include="Features\Dashboard\" />
     <Folder Include="Features\Registrations\" />
