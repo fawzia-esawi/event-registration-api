@@ -43,4 +43,14 @@ public class CategoriesController : ControllerBase
         var result = await _mediator.Send(new GetCategoryByIdQuery(id), cancellationToken);
         return Ok(result);
     }
+    [HttpPut("{id:long}")]
+    public async Task<ActionResult<CategoryResponse>> Update(
+    long id,
+    [FromBody] UpdateCategoryRequest request,
+    CancellationToken cancellationToken = default)
+    {
+        var command = new UpdateCategoryCommand(id, request.Name, request.Description, request.IsActive);
+        var result = await _mediator.Send(command, cancellationToken);
+        return Ok(result);
+    }
 }
