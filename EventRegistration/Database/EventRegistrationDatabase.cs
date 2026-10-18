@@ -10,8 +10,15 @@ public class EventRegistrationDatabase : IEventRegistrationDatabase
 
     public EventRegistrationDatabase(IConfiguration configuration)
     {
-        _connectionString = configuration["DB_CONNECTION_STRING"]
+        var connectionString = configuration["DB_CONNECTION_STRING"]
             ?? throw new InvalidOperationException("DB_CONNECTION_STRING is not configured.");
+
+        var builder = new MySqlConnectionStringBuilder(connectionString)
+        {
+            DateTimeKind = MySqlDateTimeKind.Utc
+        };
+
+        _connectionString = builder.ConnectionString;
     }
 
     public IDbConnection Open()
