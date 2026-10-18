@@ -26,4 +26,12 @@ public class CategoriesController : ControllerBase
 
         return Ok(result);
     }
+    [HttpPost]
+    public async Task<ActionResult<CategoryResponse>> Create(
+    [FromBody] CreateCategoryCommand command,
+    CancellationToken cancellationToken = default)
+    {
+        var created = await _mediator.Send(command, cancellationToken);
+        return Created($"/api/categories/{created.Id}", created);
+    }
 }
