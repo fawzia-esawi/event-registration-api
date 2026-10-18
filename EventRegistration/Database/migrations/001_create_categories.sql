@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS Categories (
+    Id BIGINT NOT NULL AUTO_INCREMENT,
+    Name VARCHAR(100) NOT NULL,
+    Description VARCHAR(500) NULL,
+    IsActive TINYINT(1) NOT NULL DEFAULT 1,
+    CreatedAt DATETIME NOT NULL DEFAULT (UTC_TIMESTAMP()),
+    UpdatedAt DATETIME NULL,
+    PRIMARY KEY (Id),
+    CONSTRAINT UQ_Categories_Name UNIQUE (Name),
+    INDEX IX_Categories_IsActive (IsActive)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
