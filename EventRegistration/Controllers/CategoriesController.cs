@@ -34,4 +34,13 @@ public class CategoriesController : ControllerBase
         var created = await _mediator.Send(command, cancellationToken);
         return Created($"/api/categories/{created.Id}", created);
     }
+
+    [HttpGet("{id:long}")]
+    public async Task<ActionResult<CategoryResponse>> GetById(
+        long id,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new GetCategoryByIdQuery(id), cancellationToken);
+        return Ok(result);
+    }
 }
