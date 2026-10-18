@@ -57,7 +57,7 @@ public class EventsController : ControllerBase
 
        await _sender.Send(command);
 
-       return NoContent();
+          return Ok();
      }
 
     [HttpDelete("{id:long}")]

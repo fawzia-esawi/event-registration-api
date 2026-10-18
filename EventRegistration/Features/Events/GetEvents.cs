@@ -106,7 +106,7 @@ public class GetEventsHandler
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            where.Append(" AND e.Name LIKE @Search");
+            where.Append(" AND (e.Name LIKE @Search OR e.Location LIKE @Search)");
             parameters.Add("Search", $"%{request.Search.Trim()}%");
         }
 

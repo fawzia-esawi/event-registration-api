@@ -24,6 +24,7 @@ public class CreateEventCommandValidator
     public CreateEventCommandValidator()
     {
         RuleFor(x => x.CategoryId)
+            .NotEmpty()
             .GreaterThan(0);
 
         RuleFor(x => x.Name)
@@ -36,19 +37,34 @@ public class CreateEventCommandValidator
         RuleFor(x => x.Location)
             .NotEmpty()
             .MaximumLength(200);
+        RuleFor(x => x.StartAt)
+            .NotEmpty()
+            .WithMessage("StartAt is required.");
+        
 
         RuleFor(x => x.EndAt)
+            .NotEmpty()
+            .WithMessage("EndAt is required.")
             .GreaterThan(x => x.StartAt)
             .WithMessage("EndAt must be after StartAt.");
 
         RuleFor(x => x.RegistrationDeadline)
+            .NotEmpty()
+            .WithMessage("RegistrationDeadline is required.")
             .LessThanOrEqualTo(x => x.StartAt)
             .WithMessage(
                 "RegistrationDeadline must be before or equal to StartAt."
             );
 
         RuleFor(x => x.Capacity)
+            .NotEmpty()
+            .WithMessage("Capacity is required.")
             .InclusiveBetween(1, 10000);
+        
+        RuleFor(x => x.IsActive)
+            .NotNull()
+            .WithMessage("IsActive is required.");
+    
     }
 }
 public class CreateEventHandler:IRequestHandler<CreateEventCommand,long>

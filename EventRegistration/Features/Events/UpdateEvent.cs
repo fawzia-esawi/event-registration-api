@@ -15,7 +15,7 @@ public class UpdateEventCommand : IRequest<long>{
     public DateTime  StartAt {get;set;} 
     public DateTime  EndAt {get;set;}
     public DateTime  RegistrationDeadline {get;set;}
-    public bool  IsActive {get;set;}  = true ;
+    public bool?  IsActive {get;set;} 
 }
 public class UpdateEventCommandValidator
     : AbstractValidator<UpdateEventCommand>{
@@ -37,18 +37,32 @@ public class UpdateEventCommandValidator
             .NotEmpty()
             .MaximumLength(200);
 
+        RuleFor(x => x.StartAt)
+            .NotEmpty()
+            .WithMessage("StartAt is required.");
+        
+
         RuleFor(x => x.EndAt)
+            .NotEmpty()
+            .WithMessage("EndAt is required.")
             .GreaterThan(x => x.StartAt)
             .WithMessage("EndAt must be after StartAt.");
 
         RuleFor(x => x.RegistrationDeadline)
+            .NotEmpty()
+            .WithMessage("RegistrationDeadline is required.")
             .LessThanOrEqualTo(x => x.StartAt)
             .WithMessage(
                 "RegistrationDeadline must be before or equal to StartAt."
             );
 
         RuleFor(x => x.Capacity)
+            .NotEmpty()
+            .WithMessage("Capacity is required.")
             .InclusiveBetween(1, 10000);
+        RuleFor(x => x.IsActive)
+            .NotNull()
+            .WithMessage("IsActive is required.");
     }
 }
 
