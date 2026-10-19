@@ -95,7 +95,20 @@ public class GetEventByIdHandler
             );
         }
 
-        return eventDetails;
+        eventDetails.StartAt = DateTime.SpecifyKind(eventDetails.StartAt,DateTimeKind.Utc);
+
+        eventDetails.EndAt = DateTime.SpecifyKind(eventDetails.EndAt,DateTimeKind.Utc);
+
+        eventDetails.RegistrationDeadline = DateTime.SpecifyKind(eventDetails.RegistrationDeadline,DateTimeKind.Utc);
+
+        eventDetails.CreatedAt = DateTime.SpecifyKind(eventDetails.CreatedAt,DateTimeKind.Utc);
+
+        if (eventDetails.UpdatedAt.HasValue)
+            {
+               eventDetails.UpdatedAt = DateTime.SpecifyKind(eventDetails.UpdatedAt.Value,DateTimeKind.Utc);
+            }
+
+    return eventDetails;
     }
 }
  

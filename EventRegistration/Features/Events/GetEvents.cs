@@ -183,7 +183,14 @@ public class GetEventsHandler
             eventsSql,
             parameters
         );
+        var eventItems = items.ToList();
 
+         foreach (var item in eventItems)
+        {
+              item.StartAt = DateTime.SpecifyKind(item.StartAt,DateTimeKind.Utc);
+
+              item.EndAt = DateTime.SpecifyKind(item.EndAt,DateTimeKind.Utc);
+        }
         // Calculate the total number of pages
         var totalPages = (int)Math.Ceiling(
             (double)totalCount / request.PageSize
@@ -192,7 +199,7 @@ public class GetEventsHandler
         // Return the result
         return new GetEventsResult
         {
-            Items = items.ToList(),
+            Items = eventItems,
             Page = request.Page,
             PageSize = request.PageSize,
             TotalCount = totalCount,
