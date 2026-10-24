@@ -25,7 +25,6 @@
     <Folder Include="Features\Events\" />
     <Folder Include="Features\Dashboard\" />
     <Folder Include="Features\Registrations\" />
-    <Folder Include="Features\Participants\" />
     <Folder Include="Middlewares\" />
     <Folder Include="Configurations\" />
     <Folder Include="Common\" />
