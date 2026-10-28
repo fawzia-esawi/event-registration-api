@@ -38,7 +38,12 @@ public class EventDetailsDto
 
     public DateTime RegistrationDeadline { get; set; }
 
+    public string EventStatus { get; set; } = string.Empty;
+
     public int Capacity { get; set; }
+    public int ActiveRegistrationCount { get; set; }
+
+    public int AvailableSeats { get; set; } 
 
     public bool IsActive { get; set; }
 
@@ -73,7 +78,27 @@ public class GetEventByIdHandler
                 e.EndAt,
                 e.RegistrationDeadline,
                 e.Capacity,
+                (
+                    SELECT COUNT(*)
+                    FROM Registrations r
+                    WHERE r.EventId = e.Id
+                    AND r.Status = 1
+                ) AS ActiveRegistrationCount,
+
+                e.Capacity - (
+                    SELECT COUNT(*)
+                    FROM Registrations r
+                    WHERE r.EventId = e.Id
+                    AND r.Status = 1
+                ) AS AvailableSeats,                
+
                 e.IsActive,
+                
+                CASE
+                    WHEN e.EndAt <= UTC_TIMESTAMP() THEN 'Completed'
+                    WHEN e.StartAt > UTC_TIMESTAMP() THEN 'Upcoming'
+                    ELSE 'Ongoing'
+                END AS EventStatus,
                 e.CreatedAt,
                 e.UpdatedAt
             FROM Events e

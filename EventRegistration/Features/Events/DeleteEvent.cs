@@ -45,7 +45,23 @@ public class DeleteEventHandler
                  $"Event with ID {request.Id} was not found."
                 );
            }
+        
+        const string checkRegistrationsSql = @"
+            SELECT COUNT(*)
+            FROM Registrations
+            WHERE EventId = @Id;
+             ";
 
+        var registrationCount =await connection.ExecuteScalarAsync<int>(checkRegistrationsSql,new { request.Id });
+
+        if (registrationCount > 0)
+            {
+                   throw new BusinessException(
+                  "This event cannot be deleted because it has registrations."
+                    );
+            }
+
+  
         const string deleteSql = @"
             DELETE FROM Events
             WHERE Id = @Id;
