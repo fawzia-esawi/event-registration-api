@@ -31,4 +31,21 @@ public class ParticipantsController : ControllerBase
         var result = await _mediator.Send(command, cancellationToken);
         return Created($"/api/participants/{result.Id}", result);
     }
+    [HttpPut("{id:long}")]
+    public async Task<ActionResult<ParticipantResponse>> Update(
+    long id,
+    [FromBody] UpdateParticipantRequest request,
+    CancellationToken cancellationToken = default)
+    {
+        var command = new UpdateParticipantCommand(
+            id,
+            request.FullName,
+            request.Email,
+            request.Phone,
+            request.DateOfBirth,
+            request.IsActive);
+
+        var result = await _mediator.Send(command, cancellationToken);
+        return Ok(result);
+    }
 }
