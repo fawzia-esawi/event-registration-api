@@ -103,7 +103,23 @@ public class UpdateEventHandler
                 $"Event with ID {request.Id} was not found."
               );
         }
+        const string activeRegistrationsSql = @"
+                   SELECT COUNT(*)
+                   FROM Registrations
+                   WHERE EventId = @Id
+                   AND Status = 1;
+                   ";
 
+        var activeRegistrationCount = await connection.ExecuteScalarAsync<int>(
+            activeRegistrationsSql,
+            new { request.Id });
+
+          if (request.Capacity < activeRegistrationCount)
+          {
+              throw new BusinessException(
+             $"Capacity cannot be less than the number of active registrations ({activeRegistrationCount})."
+             );
+          }
         // 2. Check whether the selected category exists and is active
         const string checkCategorySql = @"
             SELECT EXISTS(

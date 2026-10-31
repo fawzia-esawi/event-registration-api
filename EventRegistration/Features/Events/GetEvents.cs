@@ -164,6 +164,23 @@ public class GetEventsHandler
                 e.EndAt,
                 e.Capacity,
                 e.IsActive,
+                (
+                      SELECT COUNT(*)
+                      FROM Registrations r
+                      WHERE r.EventId = e.Id
+                       AND r.Status = 1
+                )   AS ActiveRegistrationCount,
+
+                GREATEST(
+                            0,
+                            e.Capacity - (
+                            SELECT COUNT(*)
+                            FROM Registrations r
+                            WHERE r.EventId = e.Id
+                            AND r.Status = 1 )
+                ) AS AvailableSeats,
+
+
                 CASE
                     WHEN e.EndAt <= UTC_TIMESTAMP() THEN 'Completed'
                     WHEN e.StartAt > UTC_TIMESTAMP() THEN 'Upcoming'
