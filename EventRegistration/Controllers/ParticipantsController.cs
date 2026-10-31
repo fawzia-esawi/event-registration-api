@@ -48,4 +48,10 @@ public class ParticipantsController : ControllerBase
         var result = await _mediator.Send(command, cancellationToken);
         return Ok(result);
     }
+    [HttpDelete("{id:long}")]
+    public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken = default)
+    {
+        await _mediator.Send(new DeleteParticipantCommand(id), cancellationToken);
+        return NoContent();
+    }
 }
