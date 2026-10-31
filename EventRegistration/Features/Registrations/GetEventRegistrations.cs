@@ -4,7 +4,7 @@ using EventRegistration.Api.Interfaces;
 using EventRegistration.Api.Exceptions;
 using FluentValidation;
 using System.Text;
-
+namespace EventRegistration.Api.Features.Registrations;
 public class GetEventRegistrationsQuery : IRequest<GetEventRegistrationsResult>
 {
     public long EventId { get; set; } 

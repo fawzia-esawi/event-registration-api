@@ -1,6 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
-
+using EventRegistration.Api.Features.Registrations;
 
 namespace EventRegistration.Api.Controllers
 {
@@ -36,10 +36,11 @@ namespace EventRegistration.Api.Controllers
 
                
                var result = await _sender.Send(command);
+               Response.Headers.Location = $"/api/registrations/{result.Id}";
 
              return StatusCode(
                   StatusCodes.Status201Created,
-                  new{ id = result.Id,message = result.Message});
+                  result);
             }
 
         
@@ -51,11 +52,8 @@ namespace EventRegistration.Api.Controllers
 
                var command = new CancelRegistrationCommand{Id = id};
                var result = await _sender.Send(command);
-               return Ok(new
-               {
-                id = result.Id,
-                message = result.Message
-                });
+               return Ok(result
+               );
         }
 
         [HttpGet("/api/registrations/{id:long}")]
