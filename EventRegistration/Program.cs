@@ -4,6 +4,7 @@ using EventRegistration.Api.Interfaces;
 using EventRegistration.Api.Middlewares;
 using FluentValidation;
 using MediatR;
+using Microsoft.AspNetCore.Mvc;
 using Serilog;
 
 DotNetEnv.Env.Load();
@@ -20,8 +21,48 @@ try
     var builder = WebApplication.CreateBuilder(args);
     builder.Host.UseSerilog();
 
-    builder.Services.AddControllers();
-    
+    builder.Services.AddControllers()
+        .ConfigureApiBehaviorOptions(options =>
+        {
+            options.InvalidModelStateResponseFactory = context =>
+            {
+                var errors = new List<string>();
+
+                foreach (var entry in context.ModelState)
+                {
+                    if (entry.Value is null || entry.Value.Errors.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    var field = entry.Key.StartsWith("$.") ? entry.Key[2..] : entry.Key;
+
+                    foreach (var error in entry.Value.Errors)
+                    {
+                        if (error.Exception is not null)
+                        {
+                            errors.Add($"'{field}' has an invalid value or the request body is not valid JSON.");
+                        }
+                        else if (string.IsNullOrWhiteSpace(error.ErrorMessage))
+                        {
+                            errors.Add($"'{field}' is not valid.");
+                        }
+                        else
+                        {
+                            errors.Add(error.ErrorMessage);
+                        }
+                    }
+                }
+
+                return new BadRequestObjectResult(new
+                {
+                    success = false,
+                    timestamp = DateTime.UtcNow,
+                    message = "One or more validation errors occurred.",
+                    errors
+                });
+            };
+        });
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
 
