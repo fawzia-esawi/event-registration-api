@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using EventRegistration.Api.Features.Registrations;
+using EventRegistration.Api.Common.Registrations;
 
 namespace EventRegistration.Api.Controllers
 {
@@ -19,11 +20,13 @@ namespace EventRegistration.Api.Controllers
         public async Task<ActionResult<GetEventRegistrationsResult>>
             GetEventRegistrations(
                 [FromRoute] long eventId,
-                [FromQuery] GetEventRegistrationsQuery query)
+                [FromQuery] GetEventRegistrationsQuery query,
+                CancellationToken cancellationToken
+            )
         {
             query.EventId = eventId;
 
-            var result = await _sender.Send(query);
+            var result = await _sender.Send(query , cancellationToken);
 
             return Ok(result);
         }
@@ -31,39 +34,45 @@ namespace EventRegistration.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateRegistrations(
             [FromRoute] long eventId,
-            [FromBody] CreateRegistrationsCommand command){
+            [FromBody] CreateRegistrationsCommand command ,
+            CancellationToken cancellationToken
+            ){
                 command.EventId = eventId;
 
                
-               var result = await _sender.Send(command);
-               Response.Headers.Location = $"/api/registrations/{result.Id}";
+               var result = await _sender.Send(command , cancellationToken);
+               
 
-             return StatusCode(
-                  StatusCodes.Status201Created,
-                  result);
+             return CreatedAtAction(
+                nameof(GetRegistrationById),
+                new { id = result.Id },
+                result
+            );
             }
 
         
         [HttpPatch("/api/registrations/{id:long}/cancel")]
 
         public async Task<IActionResult> CancelRegistration(
-            [FromRoute] long id)
+            [FromRoute] long id ,
+            CancellationToken cancellationToken
+            )
        {
 
                var command = new CancelRegistrationCommand{Id = id};
-               var result = await _sender.Send(command);
+               var result = await _sender.Send(command , cancellationToken );
                return Ok(result
                );
         }
 
         [HttpGet("/api/registrations/{id:long}")]
 
-        public async Task<ActionResult<RegistrationDetailsDto>>
+        public async Task<ActionResult<RegistrationDto>>
         
-        GetRegistrationById([FromRoute] long id)
+        GetRegistrationById([FromRoute] long id , CancellationToken cancellationToken)
         {
             var query = new GetRegistrationByIdQuery {Id = id};
-            var result = await _sender.Send(query);
+            var result = await _sender.Send(query , cancellationToken );
 
 
             return Ok(result);

@@ -85,6 +85,8 @@ public class GetEventsQueryValidator
             .WithMessage("FromDate must be before or equal to ToDate.");
     }
 }
+
+
 public class GetEventsHandler
     : IRequestHandler<GetEventsQuery, GetEventsResult>
 {
@@ -145,8 +147,11 @@ public class GetEventsHandler
         ";
 
         var totalCount = await connection.ExecuteScalarAsync<int>(
-            countSql,
-            parameters
+            new CommandDefinition(
+                countSql,
+                parameters ,
+                cancellationToken: cancellationToken
+            )
         );
 
         // Calculate pagination offset
@@ -197,8 +202,11 @@ public class GetEventsHandler
         parameters.Add("Offset", offset);
 
         var items = await connection.QueryAsync<EventListItemDto>(
-            eventsSql,
-            parameters
+            new CommandDefinition(
+                eventsSql,
+                parameters,
+                cancellationToken: cancellationToken
+            )
         );
         var eventItems = items.ToList();
 

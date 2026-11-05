@@ -35,8 +35,11 @@ public class DeleteEventHandler
         ";
 
         var eventExists = await connection.ExecuteScalarAsync<bool>(
-            checkEventSql,
-            new { request.Id }
+            new CommandDefinition(
+                checkEventSql,
+                new { request.Id} ,
+                cancellationToken: cancellationToken
+            )
         );
 
         if (!eventExists)
@@ -52,7 +55,13 @@ public class DeleteEventHandler
             WHERE EventId = @Id;
              ";
 
-        var registrationCount =await connection.ExecuteScalarAsync<int>(checkRegistrationsSql,new { request.Id });
+        var registrationCount =await connection.ExecuteScalarAsync<int>(
+            new CommandDefinition(
+                checkRegistrationsSql,
+                new { request.Id } ,
+                cancellationToken: cancellationToken
+            )
+        );
 
         if (registrationCount > 0)
             {
@@ -68,8 +77,11 @@ public class DeleteEventHandler
         ";
 
         await connection.ExecuteAsync(
-            deleteSql,
-            new { request.Id }
+            new CommandDefinition(
+                deleteSql,
+                new { request.Id } ,
+                cancellationToken: cancellationToken
+            )
         );
 
         return request.Id;

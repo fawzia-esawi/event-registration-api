@@ -109,8 +109,11 @@ public class GetEventByIdHandler
         using var connection = _database.Open();
 
         var eventDetails = await connection.QuerySingleOrDefaultAsync<EventDetailsDto>(
-            sql,
-            new { request.Id }
+            new CommandDefinition(
+                sql,
+                new { request.Id },
+                cancellationToken: cancellationToken
+            )
         );
 
         if (eventDetails is null)

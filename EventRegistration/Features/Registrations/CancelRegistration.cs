@@ -2,15 +2,16 @@ using EventRegistration.Api.Interfaces;
 using EventRegistration.Api.Exceptions;
 using MediatR;
 using Dapper;
+using EventRegistration.Api.Common.Registrations;
 namespace EventRegistration.Api.Features.Registrations;
 
-public class CancelRegistrationCommand : IRequest<RegistrationDetailsDto>
+public class CancelRegistrationCommand : IRequest<RegistrationDto>
 {
     public long Id { get; set; }
 }
 
 public class CancelRegistrationHandler
-    : IRequestHandler<CancelRegistrationCommand, RegistrationDetailsDto>
+    : IRequestHandler<CancelRegistrationCommand, RegistrationDto>
 {
     private readonly IEventRegistrationDatabase _database;
 
@@ -19,43 +20,32 @@ public class CancelRegistrationHandler
         _database = database;
     }
 
-    public async Task<RegistrationDetailsDto> Handle(
+    public async Task<RegistrationDto> Handle(
         CancelRegistrationCommand request,
         CancellationToken cancellationToken)
     {
         using var connection = _database.Open();
 
-        const string selectSql = @"
-        SELECT
-            r.Id AS Id,
-            r.EventId AS EventId,
-            e.Name AS EventName,
-            r.ParticipantId AS ParticipantId,
-            p.FullName AS ParticipantName,
-            p.Email AS ParticipantEmail,
-            p.Phone AS ParticipantPhone,
-            r.Status AS Status,
-            CASE WHEN r.Status = 1 THEN 'Active' ELSE 'Cancelled' END AS StatusName,
-            r.Notes AS Notes,
-            r.RegisteredAt AS RegisteredAt,
-            r.CancelledAt AS CancelledAt
-        FROM Registrations r
-        INNER JOIN Participants p ON p.Id = r.ParticipantId
-        INNER JOIN Events e ON e.Id = r.EventId
-        WHERE r.Id = @Id;";
+        var  selectSql = $@"
+            {RegistrationQueries.Select}
+            WHERE r.Id = @Id;
+        ";
 
         var registration = await connection.QuerySingleOrDefaultAsync<(
             long Id,
             int Status,
             DateTime StartAt
         )>(
+            new CommandDefinition(
             @"
             SELECT r.Id, r.Status, e.StartAt
             FROM Registrations r
             INNER JOIN Events e ON e.Id = r.EventId
             WHERE r.Id = @Id;
             ",
-            new { request.Id }
+            new { request.Id },
+            cancellationToken: cancellationToken
+            )
         );
 
         if (registration == default)
@@ -67,8 +57,14 @@ public class CancelRegistrationHandler
 
         if (registration.Status == 2)
           {
-            return await connection.QuerySingleAsync<RegistrationDetailsDto>(
-            selectSql, new { registration.Id });
+            return await connection.QuerySingleAsync<RegistrationDto>(
+                new CommandDefinition(
+            selectSql, 
+            new { registration.Id },
+            cancellationToken: cancellationToken
+            )
+
+            );
           }
 
         if (DateTime.UtcNow >= registration.StartAt)
@@ -79,6 +75,7 @@ public class CancelRegistrationHandler
         }
 
         await connection.ExecuteAsync(
+             new CommandDefinition(
             @"
             UPDATE Registrations
             SET Status = 2,
@@ -86,8 +83,18 @@ public class CancelRegistrationHandler
             WHERE Id = @Id
               AND Status = 1;
             ",
-            new { request.Id }
+            new { request.Id },
+            cancellationToken: cancellationToken
+             )
         );
 
-return await connection.QuerySingleAsync<RegistrationDetailsDto>(selectSql, new { registration.Id });    }
+return await connection.QuerySingleAsync<RegistrationDto>(
+    new CommandDefinition(
+     selectSql,
+     new { registration.Id },
+     cancellationToken: cancellationToken)
+     );  
+     
+     
+}
 }

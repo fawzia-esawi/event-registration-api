@@ -4,6 +4,7 @@ using EventRegistration.Api.Interfaces;
 using EventRegistration.Api.Exceptions;
 using FluentValidation;
 using System.Text;
+using EventRegistration.Api.Common.Registrations;
 namespace EventRegistration.Api.Features.Registrations;
 public class GetEventRegistrationsQuery : IRequest<GetEventRegistrationsResult>
 {
@@ -19,8 +20,8 @@ public class GetEventRegistrationsQuery : IRequest<GetEventRegistrationsResult>
 }
 public class GetEventRegistrationsResult
 {
-    public IEnumerable<RegistrationsListItemDto> Items { get; set; }
-        = Array.Empty<RegistrationsListItemDto>();
+    public IEnumerable<RegistrationDto> Items { get; set; }
+        = Array.Empty<RegistrationDto>();
 
     public int Page { get; set; }
 
@@ -31,32 +32,6 @@ public class GetEventRegistrationsResult
     public int TotalPages { get; set; }
 }
 
-public class  RegistrationsListItemDto {
-   
-          public long Id { get; set; } 
-
-          public long EventId { get; set; } 
-
-          public string EventName { get; set; } 
-
-          public long ParticipantId { get; set; } 
-
-          public string ParticipantName { get; set; }
-
-          public string ParticipantEmail { get; set; }
-        
-          public string ParticipantPhone { get; set; }
-
-          public int Status { get; set; }
-
-          public string StatusName { get; set; }
-
-          public string? Notes { get; set; }
-
-          public DateTime RegisteredAt { get; set; }
-
-          public DateTime? CancelledAt { get; set; }
-}
 
 public class GetEventRegistrationsQueryValidator
     : AbstractValidator<GetEventRegistrationsQuery>
@@ -118,8 +93,11 @@ public class GetEventRegistrationsHandler
         ";
 
         var eventExists = await connection.ExecuteScalarAsync<int>(
+           new CommandDefinition(
            checkEventSql,
-           new { request.EventId }
+           new { request.EventId },
+           cancellationToken: cancellationToken
+           )
         );
 
 
@@ -140,8 +118,11 @@ public class GetEventRegistrationsHandler
         ";
 
         var totalCount = await connection.ExecuteScalarAsync<int>(
-            countSql,
-            parameters
+            new CommandDefinition(
+                countSql,
+                parameters,
+                cancellationToken: cancellationToken
+            )
         );
 
         var offset = (request.Page - 1) * request.PageSize;
@@ -151,32 +132,19 @@ public class GetEventRegistrationsHandler
         
 
         var registrationsSql = $@"
-        SELECT 
-          r.Id AS Id,
-          r.EventId AS EventId,
-          e.Name AS EventName,
-          r.ParticipantId AS ParticipantId,
-          p.FullName  AS ParticipantName,
-          p.Email AS ParticipantEmail,
-          p.Phone AS ParticipantPhone,
-          r.Status AS Status,
-          CASE
-             WHEN r.Status = 1 THEN 'Active'
-             WHEN r.Status = 2 THEN 'Cancelled'
-             ELSE 'Unknown'
-          END AS StatusName,
-          r.Notes AS Notes,
-          r.RegisteredAt AS RegisteredAt,
-          r.CancelledAt AS CancelledAt
-        FROM Registrations r
-        INNER JOIN Participants p ON p.Id = r.ParticipantId
-        INNER JOIN Events e ON e.Id = r.EventId
+        {RegistrationQueries.Select}
         {where}
         ORDER BY r.RegisteredAt DESC, r.Id DESC
         LIMIT @PageSize OFFSET @Offset;
         ";
         
-        var items = await connection.QueryAsync<RegistrationsListItemDto>(registrationsSql,parameters);
+        var items = await connection.QueryAsync<RegistrationDto>(
+            new CommandDefinition(
+                registrationsSql,
+                parameters,
+                cancellationToken: cancellationToken
+            )
+            );
         
         var totalPages = (int)Math.Ceiling((double)totalCount / request.PageSize);
         
