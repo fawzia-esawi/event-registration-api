@@ -79,7 +79,7 @@ CORS is enabled only for the origins listed in `Cors:AllowedOrigins` in `appsett
 
    Repeat for the other files.
 
-3. Load the sample data (4 categories, 8 events, 12 participants, 12 active registrations and 3 cancelled registrations). Run it once, after all the migrations, on empty tables:
+3. Load the sample data (5 categories, 8 events, 12 participants, 12 active registrations and 3 cancelled registrations). Run it once, after all the migrations, on empty tables:
 
    ```powershell
    Get-Content Database\seed.sql | mysql -u root -p EventRegistration
