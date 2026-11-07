@@ -5,10 +5,11 @@ using Dapper;
 using FluentValidation;
 using System.Text;
 using MySqlConnector;
+using EventRegistration.Api.Common.Registrations;
 namespace EventRegistration.Api.Features.Registrations;
 
 
-public class CreateRegistrationsCommand: IRequest<RegistrationDetailsDto>
+public class CreateRegistrationsCommand: IRequest<RegistrationDto>
 {
     public long EventId { get; set; } 
     public long ParticipantId { get; set; }  
@@ -47,7 +48,7 @@ public class EventRow
 }
 
 public class CreateRegistrationsHandler
-    : IRequestHandler<CreateRegistrationsCommand, RegistrationDetailsDto>
+    : IRequestHandler<CreateRegistrationsCommand, RegistrationDto>
 {
     private readonly IEventRegistrationDatabase _database;
 
@@ -56,41 +57,34 @@ public class CreateRegistrationsHandler
         _database = database;
     }
 
-    public async Task<RegistrationDetailsDto> Handle(
+    public async Task<RegistrationDto> Handle(
         CreateRegistrationsCommand request,
         CancellationToken cancellationToken)
     {
-        const string selectSql = @"
-            SELECT
-                r.Id AS Id,
-                r.EventId AS EventId,
-                e.Name AS EventName,
-                r.ParticipantId AS ParticipantId,
-                p.FullName AS ParticipantName,
-                p.Email AS ParticipantEmail,
-                p.Phone AS ParticipantPhone,
-                r.Status AS Status,
-                CASE WHEN r.Status = 1 THEN 'Active' ELSE 'Cancelled' END AS StatusName,
-                r.Notes AS Notes,
-                r.RegisteredAt AS RegisteredAt,
-                r.CancelledAt AS CancelledAt
-            FROM Registrations r
-            INNER JOIN Participants p ON p.Id = r.ParticipantId
-            INNER JOIN Events e ON e.Id = r.EventId
+        var  selectSql = $@"
+            {RegistrationQueries.Select}
             WHERE r.Id = @Id;";
 
         using var connection = _database.Open();
         using var tx = connection.BeginTransaction();
 
+        request.Notes = request.Notes?.Trim();
+
         try
         {
             
             var ev = await connection.QuerySingleOrDefaultAsync<EventRow>(
+              new CommandDefinition(
                 @"SELECT IsActive, RegistrationDeadline, StartAt, Capacity
                   FROM Events
                   WHERE Id = @EventId
                   FOR UPDATE;",
-                new { request.EventId }, tx);
+                new { request.EventId },
+                transaction: tx ,
+                cancellationToken: cancellationToken
+                )
+
+                );
 
             if (ev is null)
                 throw new NotFoundException($"Event with ID {request.EventId} was not found.");
@@ -99,8 +93,13 @@ public class CreateRegistrationsHandler
 
             
             var participantIsActive = await connection.ExecuteScalarAsync<bool?>(
+               new CommandDefinition(
                 "SELECT IsActive FROM Participants WHERE Id = @ParticipantId;",
-                new { request.ParticipantId }, tx);
+                new { request.ParticipantId }, 
+                transaction: tx ,
+                cancellationToken: cancellationToken
+                 )
+                );
 
             if (participantIsActive is null)
                 throw new NotFoundException($"Participant with ID {request.ParticipantId} was not found.");
@@ -117,18 +116,28 @@ public class CreateRegistrationsHandler
 
 
             var existing = await connection.QuerySingleOrDefaultAsync<ExistingRegistration>(
+               new CommandDefinition(
                 @"SELECT Id, Status
                   FROM Registrations
                   WHERE EventId = @EventId AND ParticipantId = @ParticipantId;",
-                new { request.EventId, request.ParticipantId }, tx);
+                new { request.EventId, request.ParticipantId }, 
+                transaction:tx ,
+                cancellationToken: cancellationToken
+                )
+                );
 
             if (existing is not null && existing.Status == 1)
                 throw new BusinessException("This participant is already registered for this event.");
 
            
             var activeCount = await connection.ExecuteScalarAsync<int>(
+               new CommandDefinition(
                 "SELECT COUNT(*) FROM Registrations WHERE EventId = @EventId AND Status = 1;",
-                new { request.EventId }, tx);
+                new { request.EventId },
+                transaction: tx ,
+                cancellationToken: cancellationToken
+                )
+                );
 
             if (activeCount >= ev.Capacity)
                 throw new BusinessException("The event is full.");
@@ -139,29 +148,49 @@ public class CreateRegistrationsHandler
             if (existing is not null)
             {
                 await connection.ExecuteAsync(
+                  new CommandDefinition(
                     @"UPDATE Registrations
                       SET Status = 1, Notes = @Notes, CancelledAt = NULL
                       WHERE Id = @Id;",
-                    new { existing.Id, request.Notes }, tx);
+                    new { existing.Id, request.Notes },
+                    transaction : tx ,
+                    cancellationToken: cancellationToken
+                    )
+                   );
 
                 registrationId = existing.Id;
             }
             else
             {
                 await connection.ExecuteAsync(
+                   new CommandDefinition(
                     @"INSERT INTO Registrations
                           (EventId, ParticipantId, Status, Notes, RegisteredAt, CancelledAt)
                       VALUES
                           (@EventId, @ParticipantId, 1, @Notes, UTC_TIMESTAMP(), NULL);",
-                    new { request.EventId, request.ParticipantId, request.Notes }, tx);
+                    new { request.EventId, request.ParticipantId, request.Notes },
+                    transaction : tx ,
+                    cancellationToken: cancellationToken
+                     )
+                    );
 
                 registrationId = await connection.ExecuteScalarAsync<long>(
-                    "SELECT LAST_INSERT_ID();", transaction: tx);
+                new CommandDefinition(
+                    "SELECT LAST_INSERT_ID();",
+                    transaction: tx ,
+                    cancellationToken: cancellationToken
+                )
+                );
             }
 
            
-            var result = await connection.QuerySingleAsync<RegistrationDetailsDto>(
-                selectSql, new { Id = registrationId }, tx);
+            var result = await connection.QuerySingleAsync<RegistrationDto>(
+               new CommandDefinition(
+                selectSql,
+                new { Id = registrationId },
+                transaction : tx , 
+                cancellationToken: cancellationToken)
+            );
 
             tx.Commit();
             return result;

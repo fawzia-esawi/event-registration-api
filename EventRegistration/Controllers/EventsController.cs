@@ -18,30 +18,32 @@ public class EventsController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<GetEventsResult>> GetEvents(
-        [FromQuery] GetEventsQuery query)
+        [FromQuery] GetEventsQuery query , CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(query);
+        var result = await _sender.Send(query , cancellationToken);
 
         return Ok(result);
     }
     
     [HttpPost]
     public async Task<IActionResult> CreateEvent(
-           [FromBody] CreateEventCommand command)
+           [FromBody] CreateEventCommand command , CancellationToken cancellationToken)
      {
-       var eventId = await _sender.Send(command);
+       var createdEvent = await _sender.Send(command , cancellationToken);
 
-        return StatusCode(
-        StatusCodes.Status201Created,new { id = eventId , message = "Event created successfully."}
+        return CreatedAtAction(
+          nameof(GetEventById),
+          new { id = createdEvent.Id },
+          createdEvent
         );
 
      }
 
     [HttpGet("{id:long}")]
-      public async Task<ActionResult<EventDetailsDto>> GetEventById(long id)
+      public async Task<ActionResult<EventDetailsDto>> GetEventById(long id , CancellationToken cancellationToken)
       {
         var result = await _sender.Send(
-         new GetEventByIdQuery { Id = id });
+         new GetEventByIdQuery { Id = id } , cancellationToken );
 
          return Ok(result);
       }
@@ -51,19 +53,20 @@ public class EventsController : ControllerBase
 
       public async Task<IActionResult> UpdateEvent(
       long id,
-      [FromBody] UpdateEventCommand command)
+      [FromBody] UpdateEventCommand command , 
+      CancellationToken cancellationToken)
      {
        command.Id = id;
 
-       await _sender.Send(command);
+       var result = await _sender.Send(command , cancellationToken);
 
-          return Ok();
+          return Ok(result);
      }
 
     [HttpDelete("{id:long}")]
-       public async Task<IActionResult> DeleteEvent(long id)
+       public async Task<IActionResult> DeleteEvent(long id , CancellationToken cancellationToken)
        {
-         await _sender.Send(new DeleteEventCommand { Id = id });
+         await _sender.Send(new DeleteEventCommand { Id = id } , cancellationToken);
 
          return NoContent();
         }
