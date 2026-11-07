@@ -68,8 +68,7 @@ CORS is enabled only for the origins listed in `Cors:AllowedOrigins` in `appsett
    2. `002_create_events.sql`
    3. `003_create_participants.sql`
    4. `004_create_registrations.sql`
-
-   If more numbered files exist after 004, apply them in order too. Do not edit a migration that was already applied; add a new one.
+   5. `005_AddEngineAndCharsetToRegistrations.sql`
 
    With the command line (PowerShell):
 
